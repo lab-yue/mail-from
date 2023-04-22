@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    env,
+    env, fs,
     sync::{Arc, Mutex},
 };
 
@@ -24,7 +24,7 @@ fn main() {
         Arc::new(Mutex::new(HashMap::default()));
     let mut mails = MailFrom::new();
 
-    std::fs::read_to_string(file_path)
+    fs::read_to_string(file_path)
         .expect("failed to read file")
         .split("\nFrom ")
         .enumerate()
@@ -45,23 +45,23 @@ fn main() {
                 format: Some(MboxFormat::MboxCl),
             };
             let Ok(envelopes) = message_iter.collect::<Result<Vec<Envelope>, _>>() else {return};
+
             assert_eq!(envelopes.len(), 1);
+            let envelop = envelopes.first().unwrap();
 
-            for envelop in envelopes {
-                let addrs = envelop.from();
-                for addr in addrs {
-                    let display_name = addr
-                        .get_display_name()
-                        .unwrap_or("<no_display_name>".to_owned());
-                    let email = addr.get_email();
+            let addrs = envelop.from();
+            for addr in addrs {
+                let display_name = addr
+                    .get_display_name()
+                    .unwrap_or("<no_display_name>".to_owned());
+                let email = addr.get_email();
 
-                    *mails
-                        .entry(Sender {
-                            display_name,
-                            email,
-                        })
-                        .or_insert(0) += 1;
-                }
+                *mails
+                    .entry(Sender {
+                        display_name,
+                        email,
+                    })
+                    .or_insert(0) += 1;
             }
         });
     let mut mails = mails.into_iter().collect::<Vec<(Sender, i32)>>();
@@ -85,5 +85,5 @@ fn main() {
 
     let contents = String::from_utf8(wtr.into_inner().unwrap()).unwrap();
 
-    std::fs::write("result.csv", contents).unwrap();
+    fs::write("result.csv", contents).unwrap();
 }
